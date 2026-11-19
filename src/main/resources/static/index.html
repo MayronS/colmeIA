@@ -69,8 +69,12 @@
         }
         button:hover { background: #ffb81f; }
         button.secondary { background: #fff; border-color: var(--line); font-weight: 500; }
+        td.adj { white-space: nowrap; }
+        button.icon { width: 34px; padding: 4px 0; font-size: 1.1rem; line-height: 1; }
+        button.icon + button.icon { margin-left: 4px; }
+        button:disabled { opacity: .4; cursor: not-allowed; }
         .table-wrap { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 560px; }
+        table { width: 100%; border-collapse: collapse; min-width: 640px; }
         th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); }
         th { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
         td.num, th.num { text-align: right; }
@@ -118,7 +122,7 @@
                 <tr>
                     <th>ID</th><th>Nome</th><th>Categoria</th>
                     <th class="num">Qtd</th><th class="num">Mínimo</th>
-                    <th class="num">Preço</th><th>Situação</th>
+                    <th class="num">Preço</th><th>Situação</th><th>Ajustar</th>
                 </tr>
                 </thead>
                 <tbody id="tbody"></tbody>
@@ -183,6 +187,10 @@
           <td class="num">${p.quantidadeMinima}</td>
           <td class="num">${brl(p.preco)}</td>
           <td><span class="badge ${baixo(p) ? 'low' : 'ok'}">${baixo(p) ? 'Repor' : 'OK'}</span></td>
+          <td class="adj">
+            <button class="icon" type="button" data-id="${p.id}" data-delta="-1" aria-label="Remover 1 de ${esc(p.nome)}" ${p.quantidade <= 0 ? 'disabled' : ''}>−</button>
+            <button class="icon" type="button" data-id="${p.id}" data-delta="1" aria-label="Adicionar 1 a ${esc(p.nome)}">+</button>
+          </td>
         </tr>`).join('');
 
       if (produtos.length && !lista.length) {
@@ -231,6 +239,27 @@
         msg.className = 'msg err';
         msg.textContent = 'Erro ao cadastrar o produto.';
       }
+    });
+
+    $('tbody').addEventListener('click', async (ev) => {
+      const btn = ev.target.closest('button[data-id]');
+      if (!btn) return;
+      btn.disabled = true;
+      try {
+        const res = await fetch(`${API}/${btn.dataset.id}/quantidade`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ delta: parseInt(btn.dataset.delta, 10) }),
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const atual = await res.json();
+        const i = produtos.findIndex(p => p.id === atual.id);
+        if (i >= 0) produtos[i] = atual;
+      } catch (e) {
+        $('listMsg').textContent = 'Não foi possível atualizar a quantidade.';
+        $('listMsg').hidden = false;
+      }
+      render();
     });
 
     $('busca').addEventListener('input', render);

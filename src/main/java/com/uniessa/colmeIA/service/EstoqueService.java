@@ -45,6 +45,24 @@ public class EstoqueService {
         estoque.atualizarQuantidade(id, quantidade);
     }
 
+    /**
+     * Soma "delta" (positivo ou negativo) à quantidade do produto.
+     * Retorna o produto atualizado, ou null se o id não existir.
+     * Lança IllegalArgumentException se a quantidade ficaria negativa.
+     */
+    public Produto ajustarQuantidade(int id, int delta) {
+        Produto produto = estoque.consultarProduto(id);
+        if (produto == null) {
+            return null;
+        }
+        int nova = produto.getQuantidade() + delta;
+        if (nova < 0) {
+            throw new IllegalArgumentException("Quantidade não pode ser negativa");
+        }
+        produto.setQuantidade(nova);
+        return produto;
+    }
+
     public List<Produto> listarAbaixoDoMinimo() {
         return estoque.listarAbaixoDoMinimo();
     }

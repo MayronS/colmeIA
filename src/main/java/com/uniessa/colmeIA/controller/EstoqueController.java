@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/estoque")
@@ -37,5 +38,27 @@ public class EstoqueController {
     public ResponseEntity<Produto> cadastrar(@RequestBody Produto produto) {
         Produto cadastrado = estoqueService.cadastrarProduto(produto);
         return ResponseEntity.ok(cadastrado);
+    }
+
+    /**
+     * Ajusta a quantidade de um produto somando "delta" (use valor negativo para remover).
+     * Ex.: PATCH /estoque/123231/quantidade  {"delta": 1}
+     */
+    @PatchMapping("/{id}/quantidade")
+    public ResponseEntity<Produto> ajustarQuantidade(@PathVariable int id,
+                                                     @RequestBody Map<String, Integer> corpo) {
+        Integer delta = corpo.get("delta");
+        if (delta == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        try {
+            Produto produto = estoqueService.ajustarQuantidade(id, delta);
+            if (produto == null) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(produto);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 }
