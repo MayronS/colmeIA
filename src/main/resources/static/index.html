@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ColmeIA – Controle de Estoque</title>
+    <style>
+        :root {
+          --amber: #f5a300;
+          --amber-dark: #b87a00;
+          --bg: #fffaf0;
+          --card: #ffffff;
+          --text: #2b2418;
+          --muted: #7a6e5a;
+          --line: #eadfc6;
+          --danger: #c0392b;
+          --danger-bg: #fdecea;
+          --ok: #2e7d32;
+          --ok-bg: #e8f5e9;
+        }
+        * { box-sizing: border-box; }
+        body {
+          margin: 0;
+          font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+          background: var(--bg);
+          color: var(--text);
+        }
+        header {
+          background: var(--amber);
+          padding: 20px 16px;
+          box-shadow: 0 2px 6px rgba(0,0,0,.1);
+        }
+        header div, main { max-width: 960px; margin: 0 auto; }
+        header h1 { margin: 0; font-size: 1.6rem; }
+        header p { margin: 4px 0 0; font-size: .95rem; }
+        main { padding: 16px; display: grid; gap: 16px; }
+        section {
+          background: var(--card);
+          border: 1px solid var(--line);
+          border-radius: 12px;
+          padding: 16px;
+        }
+        h2 { margin: 0 0 12px; font-size: 1.15rem; }
+        .summary { display: flex; gap: 12px; flex-wrap: wrap; }
+        .stat {
+          flex: 1 1 140px;
+          background: var(--bg);
+          border: 1px solid var(--line);
+          border-radius: 10px;
+          padding: 10px 14px;
+        }
+        .stat b { display: block; font-size: 1.5rem; }
+        .stat span { color: var(--muted); font-size: .85rem; }
+        .stat.alert b { color: var(--danger); }
+        .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        input, button {
+          font: inherit;
+          padding: 9px 12px;
+          border-radius: 8px;
+          border: 1px solid var(--line);
+        }
+        input:focus { outline: 2px solid var(--amber); border-color: var(--amber); }
+        .toolbar input { flex: 1 1 220px; }
+        button {
+          background: var(--amber);
+          border-color: var(--amber-dark);
+          font-weight: 600;
+          cursor: pointer;
+        }
+        button:hover { background: #ffb81f; }
+        button.secondary { background: #fff; border-color: var(--line); font-weight: 500; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 560px; }
+        th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); }
+        th { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+        td.num, th.num { text-align: right; }
+        .badge {
+          display: inline-block; padding: 2px 10px; border-radius: 999px;
+          font-size: .8rem; font-weight: 600;
+        }
+        .badge.ok { background: var(--ok-bg); color: var(--ok); }
+        .badge.low { background: var(--danger-bg); color: var(--danger); }
+        tr.low td:nth-child(4) { color: var(--danger); font-weight: 700; }
+        form { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+        label { display: grid; gap: 4px; font-size: .85rem; color: var(--muted); }
+        label input { color: var(--text); width: 100%; min-width: 0; }
+        form .actions { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .msg { font-size: .9rem; }
+        .msg.err { color: var(--danger); }
+        .msg.ok { color: var(--ok); }
+        .empty { color: var(--muted); padding: 16px 0; text-align: center; }
+    </style>
+</head>
+<body>
+<header>
+    <div>
+        <h1>🐝 ColmeIA</h1>
+        <p>Controle de estoque para pequenos comércios</p>
+    </div>
+</header>
+
+<main>
+    <section class="summary" aria-label="Resumo">
+        <div class="stat"><b id="statTotal">–</b><span>Produtos cadastrados</span></div>
+        <div class="stat alert"><b id="statLow">–</b><span>Abaixo do mínimo</span></div>
+        <div class="stat"><b id="statValue">–</b><span>Valor em estoque</span></div>
+    </section>
+
+    <section>
+        <h2>Estoque</h2>
+        <div class="toolbar">
+            <input id="busca" type="search" placeholder="Buscar por ID ou nome…" aria-label="Buscar produto">
+            <button class="secondary" id="btnRecarregar" type="button">↻ Atualizar</button>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th><th>Nome</th><th>Categoria</th>
+                    <th class="num">Qtd</th><th class="num">Mínimo</th>
+                    <th class="num">Preço</th><th>Situação</th>
+                </tr>
+                </thead>
+                <tbody id="tbody"></tbody>
+            </table>
+        </div>
+        <div id="listMsg" class="empty" hidden></div>
+    </section>
+
+    <section>
+        <h2>Cadastrar produto</h2>
+        <form id="form">
+            <label>ID (opcional)<input name="id" type="number" min="1" placeholder="gerado automaticamente"></label>
+            <label>Nome<input name="nome" required></label>
+            <label>Categoria<input name="categoria" required></label>
+            <label>Preço (R$)<input name="preco" type="number" min="0" step="0.01" required></label>
+            <label>Quantidade<input name="quantidade" type="number" min="0" step="1" required></label>
+            <label>Quantidade mínima<input name="quantidadeMinima" type="number" min="0" step="1" required></label>
+            <div class="actions">
+                <button type="submit">Cadastrar</button>
+                <span id="formMsg" class="msg" role="status"></span>
+            </div>
+        </form>
+    </section>
+</main>
+
+<script>
+    const API = '/estoque';
+    let produtos = [];
+
+    const $ = (id) => document.getElementById(id);
+    const brl = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    async function carregar() {
+      const msg = $('listMsg');
+      try {
+        const res = await fetch(API);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        produtos = data.produtos || [];
+        msg.hidden = true;
+      } catch (e) {
+        produtos = [];
+        msg.textContent = 'Não foi possível carregar o estoque. A API está rodando?';
+        msg.hidden = false;
+      }
+      render();
+    }
+
+    function render() {
+      const termo = $('busca').value.trim().toLowerCase();
+      const lista = produtos.filter(p =>
+        !termo || String(p.id).includes(termo) || (p.nome || '').toLowerCase().includes(termo));
+
+      const baixo = (p) => p.quantidade < p.quantidadeMinima;
+
+      $('tbody').innerHTML = lista.map(p => `
+        <tr class="${baixo(p) ? 'low' : ''}">
+          <td>${esc(p.id)}</td>
+          <td>${esc(p.nome)}</td>
+          <td>${esc(p.categoria)}</td>
+          <td class="num">${p.quantidade}</td>
+          <td class="num">${p.quantidadeMinima}</td>
+          <td class="num">${brl(p.preco)}</td>
+          <td><span class="badge ${baixo(p) ? 'low' : 'ok'}">${baixo(p) ? 'Repor' : 'OK'}</span></td>
+        </tr>`).join('');
+
+      if (produtos.length && !lista.length) {
+        $('listMsg').textContent = 'Nenhum produto encontrado para essa busca.';
+        $('listMsg').hidden = false;
+      } else if (produtos.length) {
+        $('listMsg').hidden = true;
+      }
+
+      $('statTotal').textContent = produtos.length;
+      $('statLow').textContent = produtos.filter(baixo).length;
+      $('statValue').textContent = brl(produtos.reduce((s, p) => s + p.preco * p.quantidade, 0));
+    }
+
+    function esc(v) {
+      return String(v ?? '').replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    $('form').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const f = new FormData(ev.target);
+      const body = {
+        nome: f.get('nome').trim(),
+        categoria: f.get('categoria').trim(),
+        preco: parseFloat(f.get('preco')),
+        quantidade: parseInt(f.get('quantidade'), 10),
+        quantidadeMinima: parseInt(f.get('quantidadeMinima'), 10),
+      };
+      if (f.get('id')) body.id = parseInt(f.get('id'), 10);
+
+      const msg = $('formMsg');
+      try {
+        const res = await fetch(API + '/produtos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const p = await res.json();
+        msg.className = 'msg ok';
+        msg.textContent = `Produto "${p.nome}" cadastrado (ID ${p.id}).`;
+        ev.target.reset();
+        carregar();
+      } catch (e) {
+        msg.className = 'msg err';
+        msg.textContent = 'Erro ao cadastrar o produto.';
+      }
+    });
+
+    $('busca').addEventListener('input', render);
+    $('btnRecarregar').addEventListener('click', carregar);
+    carregar();
+</script>
+</body>
+</html>
