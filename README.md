@@ -75,7 +75,7 @@ cd colmeIA
 mvnw.cmd spring-boot:run
 ```
 
-A API ficará disponível em `http://localhost:8080`.
+A API ficará disponível em `http://localhost:8080`, e a interface web em `http://localhost:8080/` (`src/main/resources/static/index.html`).
 
 > No Linux/macOS, se aparecer `Permission denied`, rode `chmod +x mvnw`.
 
@@ -88,6 +88,7 @@ Base URL: `http://localhost:8080/estoque`
 | GET    | `/estoque`          | Retorna o estoque completo (lista de produtos) | `200 OK`     |
 | GET    | `/estoque/{id}`     | Consulta um produto pelo id                    | `200`, `404` |
 | POST   | `/estoque/produtos` | Cadastra um novo produto                       | `200 OK`     |
+| PATCH  | `/estoque/{id}/quantidade` | Soma `delta` à quantidade do produto (negativo remove) | `200`, `400`, `404` |
 
 ### Exemplos
 
@@ -132,6 +133,22 @@ curl -X POST http://localhost:8080/estoque/produtos \
 
 Se o `id` não for informado, a API gera um automaticamente.
 
+**Adicionar ou remover quantidade**
+
+```bash
+# adiciona 5 unidades
+curl -X PATCH http://localhost:8080/estoque/123231/quantidade \
+  -H "Content-Type: application/json" \
+  -d '{"delta": 5}'
+
+# remove 1 unidade
+curl -X PATCH http://localhost:8080/estoque/123231/quantidade \
+  -H "Content-Type: application/json" \
+  -d '{"delta": -1}'
+```
+
+Retorna o produto atualizado (`200`). Retorna `404` se o id não existir e `400` se o `delta` não for informado ou se a quantidade resultante ficasse negativa.
+
 ## 📦 Modelo de dados
 
 **Produto**
@@ -164,4 +181,4 @@ Ao iniciar, a aplicação carrega três produtos de exemplo:
 - Os dados ficam **em memória**: tudo é perdido ao reiniciar a aplicação (não há banco de dados).
 - Consulta por nome (RF02) ainda não implementada.
 - O cadastro com um `id` já existente adiciona um item duplicado em vez de substituir o anterior.
-- Os métodos de atualização de quantidade e listagem de produtos abaixo do mínimo existem no serviço, mas ainda não têm endpoint.
+- A listagem de produtos abaixo do mínimo existe no serviço, mas ainda não tem endpoint.

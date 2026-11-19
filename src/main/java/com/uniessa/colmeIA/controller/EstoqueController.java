@@ -40,10 +40,6 @@ public class EstoqueController {
         return ResponseEntity.ok(cadastrado);
     }
 
-    /**
-     * Ajusta a quantidade de um produto somando "delta" (use valor negativo para remover).
-     * Ex.: PATCH /estoque/123231/quantidade  {"delta": 1}
-     */
     @PatchMapping("/{id}/quantidade")
     public ResponseEntity<Produto> ajustarQuantidade(@PathVariable int id,
                                                      @RequestBody Map<String, Integer> corpo) {
