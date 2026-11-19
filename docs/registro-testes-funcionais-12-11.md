@@ -48,7 +48,24 @@
 
 ---
 
+## Teste 03: Funcionalidade: Atualizar quantidade do produto
+
+- **Entrada/ação:** Requisição `PATCH http://localhost:8080/estoque/2123213/quantidade` com corpo JSON:
+
+  ```
+  { "delta": 5 }
+  ```
+
+- **Resultado esperado:** Status `200 OK` e JSON do produto atualizado.
+
+- **Resultado obtido:** ![Evidência do Teste 03](CT-03.png)
+
+- **Situação:** Passou
+
+---
+
 ## Evidências
 
 ![Evidência do Teste 01](CT-01.png)
 ![Evidência do Teste 02](CT-02.png)
+![Evidência do Teste 03](CT-03.png)
